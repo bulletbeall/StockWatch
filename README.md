@@ -7,6 +7,7 @@ The end goal of this project is to be able to scrawl through websites of stock a
 This README is all i got right now.
 
 |In Dev|
+Use stockscreener.com as source of buy/sell whatnot
 All of it.
 
 

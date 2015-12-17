@@ -23,8 +23,8 @@ tree = html.fromstring(page.content)
 
 #initialize the array used for holding our daily data
 #data1 = [date, Stock Name, null]
-#data2 = [number of analysts, stock name, Average Recommendation]
-stockArray2D = [[0 for x in range(3)] for x in range(200)] 
+#data2 = [number of analysts, stock name, Average Recommendation, average estimate price]
+stockArray2D = [[0 for x in range(4)] for x in range(200)] 
 
 #The stockmarket page has the most recent 200 entries on the page, so we pull in the 200 entries and grab 
 #the appropriate data we want
@@ -74,6 +74,8 @@ while i < j:
     stockArray2D[i][0] = tree.xpath(tempXpath)
     tempXpath='//*[@id="maincontent"]/div[1]/table[1]/tbody/tr[1]/td[2]/text()'
     stockArray2D[i][2] = tree.xpath(tempXpath)
+    tempXpath='//*[@id="maincontent"]/div[1]/table[1]/tbody/tr[1]/td[4]/text()'
+    stockArray2D[i][3] = tree.xpath(tempXpath)
     i=i+1    
 
 #go through the array and check to make sure the data is valid. If there is a null 
@@ -113,7 +115,20 @@ while i < j:
         tempStr = re.sub("[^A-z]","", tempStr)
         stockArray2D[i][2] = tempStr        
     i=i+1
-    j=len(stockArray2D)    
+    j=len(stockArray2D)   
+    
+#make column 3 a string and not object
+i=0
+j=len(stockArray2D)
+while i < j:
+    print str(stockArray2D[i]) + str(i) + "/"+ str(j) 
+    tempList = stockArray2D[i][3]
+    tempStr = str(tempList[0])
+    stockArray2D[i][3] = tempStr      
+    i=i+1
+   
+
+        
 
 #delete any duplicate entries due to multiple analysts changing their recomendation
 i=0

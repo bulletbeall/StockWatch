@@ -12,14 +12,22 @@ import os
 #At the end of this initialization, whatever analysis has been updated today by marketwatch.com is imported and we are left
 #with the list stockArray, which has a list all of the stocks whose analysis has been updated today
 #
+
+#store todays date for file naming and to make sure we dont double up checks on data pulled from the website
 todaysDate = time.strftime("%m/%d/%Y")
 todaysDateNoSlash = time.strftime("%Y%m%d")
 
+#pull html from the website and parse it into xPATH in the tree variable
 page = requests.get('http://www.marketwatch.com/tools/stockresearch/updown')
 tree = html.fromstring(page.content)
 
+#initialize the array used for holding our daily data
+#data1 = [date, Stock Name, null]
+#data2 = [number of analysts, stock name, Average Recommendation]
 stockArray2D = [[0 for x in range(3)] for x in range(200)] 
 
+#The stockmarket page has the most recent 200 entries on the page, so we pull in the 200 entries and grab 
+#the appropriate data we want
 i=1
 while i < 201:
     j=1
@@ -32,6 +40,7 @@ while i < 201:
         j+=1
     i+=1
     
+#Iterates through our array and converts the list objects in each cell to strings because xPATH is stupid and inserts /text as a list object
 i=0
 while i < 200:
     j=0
@@ -42,6 +51,7 @@ while i < 200:
         j+=1
     i+=1    
 
+#Removes all entries that didnt occur TODAY    
 i=len(stockArray2D)-1   
 while i >= 0:
     if stockArray2D[i][0] != todaysDate:
@@ -50,12 +60,12 @@ while i >= 0:
 
     
 #
-#Data Analysis to SORT stocks by the number of firms with an analysison them
+#Data Analysis to SORT stocks by the number of firms with an analysis on them
 #
-    
+
+#Acquire the number of analysts and the average rating
 i=0
 j=len(stockArray2D)
-
 while i < j:
     getAnalystString = "http://www.marketwatch.com/investing/stock/"+stockArray2D[i][1]+"/analystestimates"
     page = requests.get(getAnalystString)
@@ -66,6 +76,11 @@ while i < j:
     stockArray2D[i][2] = tree.xpath(tempXpath)
     i=i+1    
 
+#go through the array and check to make sure the data is valid. If there is a null 
+#in the number of analyst column, delete the entry row, if there is anything but a number
+#remove it, and convert the string of numbers into an int. Also if the number of analysts
+#is less than 10(this number will be changed to dynamic and editable later) make the 
+#average rating column null to be deleted in the next loop
 i=0
 j=len(stockArray2D)
 while i < j:
@@ -73,27 +88,49 @@ while i < j:
         del stockArray2D[i]
         i=i-1        
     else :
-        j=len(stockArray2D)
         tempList = stockArray2D[i][0]
         tempStr = str(tempList[0])
         tempStr = re.sub("[^0-9]", "", tempStr)
         tempStr = int(tempStr)
-        stockArray2D[i][0] = tempStr
+        if tempStr < 10:
+            stockArray2D[i][2] = ""
+        stockArray2D[i][0] = tempStr  
+    i=i+1
+    j=len(stockArray2D)
+    
+#go through the array and check to make sure the data is valid. If there is a 
+#null in the average rating column, delete the entry row, if there is anything 
+#but letters remove it   
+i=0
+j=len(stockArray2D)
+while i < j:
     if not stockArray2D[i][2]:
         del stockArray2D[i]
         i=i-1        
     else :
-        j=len(stockArray2D)
         tempList = stockArray2D[i][2]
         tempStr = str(tempList[0])
         tempStr = re.sub("[^A-z]","", tempStr)
-        stockArray2D[i][2] = tempStr                
-    i=i+1    
+        stockArray2D[i][2] = tempStr        
+    i=i+1
+    j=len(stockArray2D)    
+
+#delete any duplicate entries due to multiple analysts changing their recomendation
+i=0
+j=len(stockArray2D)-1
+while i < j:
+    if stockArray2D[i][1] == stockArray2D[i+1][1]:
+        del stockArray2D[i]
+        i=i-1              
+    i=i+1
+    j=len(stockArray2D)-1
     
-    
+#sort the stocks by number of analysts in descending order    
 stockArray2D.sort()
 stockArray2D.reverse()
-    
+
+#create a filename based on the date, delete it if it already exists,
+#open the file, write all of the entries in line by line, and close file
 fileName = str(todaysDateNoSlash) + "_newStocks.txt"   
 if os.path.exists(fileName):
     os.remove(fileName)
@@ -103,4 +140,4 @@ j=len(stockArray2D)
 while i < j:
     f.write(str(stockArray2D[i])+"\n") # python will convert \n to os.linesep
     i=i+1  
-f.close() # you can omit in most cases as the destructor will call it   
+f.close()   

@@ -177,12 +177,6 @@ while i < j:
 stockArray2D.sort()
 stockArray2D.reverse()
     
-i=0
-j=len(stockArray2D)
-while i < j:
-    print stockArray2D[i]
-    i=i+1
-
 #Convert number of analysts to a ranking    
 i=0
 j=len(stockArray2D)

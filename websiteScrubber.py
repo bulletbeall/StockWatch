@@ -23,8 +23,8 @@ tree = html.fromstring(page.content)
 
 #initialize the array used for holding our daily data
 #data1 = [date, Stock Name, null]
-#data2 = [number of analysts, stock name, Average Recommendation, average estimate price]
-stockArray2D = [[0 for x in range(4)] for x in range(200)] 
+#data2 = [number of analysts, stock name, Average Recommendation, investopedia open price today, average target price]
+stockArray2D = [[0 for x in range(6)] for x in range(200)] 
 
 #The stockmarket page has the most recent 200 entries on the page, so we pull in the 200 entries and grab 
 #the appropriate data we want
@@ -75,8 +75,21 @@ while i < j:
     tempXpath='//*[@id="maincontent"]/div[1]/table[1]/tbody/tr[1]/td[2]/text()'
     stockArray2D[i][2] = tree.xpath(tempXpath)
     tempXpath='//*[@id="maincontent"]/div[1]/table[1]/tbody/tr[1]/td[4]/text()'
-    stockArray2D[i][3] = tree.xpath(tempXpath)
-    i=i+1    
+    stockArray2D[i][4] = tree.xpath(tempXpath)
+    i=i+1 
+
+#Acquire the opening price from investopedia today
+i=0
+j=len(stockArray2D)
+while i < j:
+    getAnalystString = "http://www.investopedia.com/markets/stocks/"+ str(stockArray2D[i][1].lower()) +"/"
+    page = requests.get(getAnalystString)
+    tree = html.fromstring(page.content)
+    tempXpath='//*[@id="block-system-main"]/div/div[3]/div/div[2]/div[1]/table/tbody/tr[5]/td[2]/text()'
+    tempString= tree.xpath(tempXpath)
+    tempString= str(tempString[0])
+    stockArray2D[i][3] = float(tempString)
+    i=i+1     
 
 #go through the array and check to make sure the data is valid. If there is a null 
 #in the number of analyst column, delete the entry row, if there is anything but a number
@@ -117,20 +130,17 @@ while i < j:
     i=i+1
     j=len(stockArray2D)   
     
-#make column 3 a string and not object
+#make column 4 a float and not object
 i=0
 j=len(stockArray2D)
 while i < j:
-    print str(stockArray2D[i]) + str(i) + "/"+ str(j) 
-    tempList = stockArray2D[i][3]
+    tempList = stockArray2D[i][4]
     tempStr = str(tempList[0])
-    stockArray2D[i][3] = tempStr      
+    stockArray2D[i][4] = float(tempStr)
+    stockArray2D[i][5] = float('%.3f'%(stockArray2D[i][4]/stockArray2D[i][3]))
     i=i+1
    
-
-        
-
-#delete any duplicate entries due to multiple analysts changing their recomendation
+#delete any duplicate entries due to multiple analysts changing their recommendation
 i=0
 j=len(stockArray2D)-1
 while i < j:
@@ -139,10 +149,107 @@ while i < j:
         i=i-1              
     i=i+1
     j=len(stockArray2D)-1
+
+#delete any entries that are changes to HOLD, underweight, or sell
+i=0
+j=len(stockArray2D)
+while i < j:
+    if stockArray2D[i][2] == "Hold":
+        del stockArray2D[i]
+        i=i-1              
+    if stockArray2D[i][2] == "Underweight":
+        del stockArray2D[i]
+        i=i-1              
+    if stockArray2D[i][2] == "Sell":
+        del stockArray2D[i]
+        i=i-1              
+    i=i+1
+    j=len(stockArray2D)-1
+
+numBuy=0
+i=0
+j=len(stockArray2D)
+while i < j:
+    if stockArray2D[i][2] == "Buy":
+        numBuy=numBuy+1
+    i=i+1
     
-#sort the stocks by number of analysts in descending order    
 stockArray2D.sort()
 stockArray2D.reverse()
+    
+i=0
+j=len(stockArray2D)
+while i < j:
+    print stockArray2D[i]
+    i=i+1
+
+#Convert number of analysts to a ranking    
+i=0
+j=len(stockArray2D)
+while i < j:
+    stockArray2D[i][0] = int(i+1)
+    i=i+1
+    j=len(stockArray2D)
+
+stockArray2D.sort()
+   
+   
+i=0
+j=len(stockArray2D)
+while i < j:
+    tempStrA = stockArray2D[i][0]
+    tempStrB = stockArray2D[i][1]
+    stockArray2D[i][0] = stockArray2D[i][2]
+    stockArray2D[i][1] = tempStrA
+    stockArray2D[i][2] = tempStrB
+    i=i+1
+    j=len(stockArray2D)
+    
+
+#sort the stocks by number of analysts in descending order    
+stockArray2D.sort()
+    
+#Dwindle to 20
+i=20
+j=len(stockArray2D)
+while i < j:
+    stockArray2D.pop()
+    j=len(stockArray2D)
+    
+    
+i=0
+j=len(stockArray2D)
+while i < j:
+    if i < numBuy:
+        stockArray2D[i][0] = float(100)
+    else:    
+        tempStrA = stockArray2D[i][0]
+        stockArray2D[i][0] = float(stockArray2D[i][5])
+        stockArray2D[i][5] = tempStrA
+    i=i+1
+
+stockArray2D.sort()
+stockArray2D.reverse()
+    
+i=0
+j=len(stockArray2D)
+while i < j:
+    if i < numBuy:
+        stockArray2D[i][0] = "Buy"
+    else:    
+        tempStrA = stockArray2D[i][0]
+        stockArray2D[i][0] = stockArray2D[i][5]
+        stockArray2D[i][5] = float(tempStrA)
+    i=i+1
+    
+#Dwindle to 10
+i=10
+j=len(stockArray2D)
+while i < j:
+    stockArray2D.pop()
+    j=len(stockArray2D)
+    
+    
 
 #create a filename based on the date, delete it if it already exists,
 #open the file, write all of the entries in line by line, and close file
